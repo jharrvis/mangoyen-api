@@ -162,7 +162,7 @@ class PaymentController extends Controller
         $competingAdoptions = Adoption::with(['adopter', 'cat'])
             ->where('cat_id', $catId)
             ->where('id', '!=', $adoption->id)
-            ->whereIn('status', ['pending', 'approved'])
+            ->whereIn('status', ['pending', 'approved', 'waiting_payment'])
             ->get();
 
         foreach ($competingAdoptions as $competing) {
