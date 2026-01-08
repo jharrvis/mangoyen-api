@@ -141,6 +141,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/verify', [\App\Http\Controllers\Api\AdminController::class, 'verifyPayment']);
     });
 
+    // Shelter Dashboard
+    Route::prefix('shelter/dashboard')->group(function () {
+        Route::get('/stats', [\App\Http\Controllers\Api\ShelterDashboardController::class, 'stats']);
+        Route::get('/most-viewed', [\App\Http\Controllers\Api\ShelterDashboardController::class, 'mostViewed']);
+    });
+
     // Wishlist
     Route::prefix('wishlist')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\WishlistController::class, 'index']);
