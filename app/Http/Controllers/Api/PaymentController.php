@@ -157,6 +157,51 @@ class PaymentController extends Controller
             ]
         ]);
 
+        // Auto-close competing adoptions for the same cat
+        $catId = $adoption->cat_id;
+        $competingAdoptions = Adoption::with(['adopter', 'cat'])
+            ->where('cat_id', $catId)
+            ->where('id', '!=', $adoption->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->get();
+
+        foreach ($competingAdoptions as $competing) {
+            $competing->update(['status' => 'cancelled']);
+
+            // Notify affected user
+            Notification::notify(
+                $competing->adopter_id,
+                'adoption_cancelled',
+                '❌ Pengajuan Adopsi Ditutup',
+                "Pengajuan adopsi untuk {$competing->cat->name} ditutup karena sudah ada adopter lain yang melakukan pembayaran terlebih dahulu.",
+                '/dashboard',
+                $competing
+            );
+
+            // Log cancellation activity
+            ActivityLog::create([
+                'causer_id' => null, // System action
+                'subject_type' => 'App\Models\Adoption',
+                'subject_id' => $competing->id,
+                'event' => 'adoption_auto_cancelled',
+                'description' => "Pengajuan adopsi {$competing->cat->name} oleh {$competing->adopter->name} dibatalkan otomatis karena ada pembayaran dari adopter lain",
+                'properties' => [
+                    'adoption_id' => $competing->id,
+                    'cat_id' => $catId,
+                    'reason' => 'competing_payment_verified',
+                    'winning_adoption_id' => $adoption->id
+                ]
+            ]);
+
+            // Send WhatsApp notification to affected user
+            if ($competing->adopter->phone) {
+                SendWhatsAppMessage::dispatch(
+                    $competing->adopter->phone,
+                    "Maaf, pengajuan adopsi untuk {$competing->cat->name} ditutup karena sudah ada adopter lain yang melakukan pembayaran. Terima kasih atas minatnya! - MangOyen"
+                )->delay(now()->addSeconds(10));
+            }
+        }
+
         // Send Notifications (Email & WA)
         $this->sendPaymentNotifications($adoption);
     }

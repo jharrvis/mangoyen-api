@@ -38,7 +38,7 @@ class CatController extends Controller
     public function index(Request $request)
     {
         $query = Cat::with(['shelter', 'photos'])
-            ->available();
+            ->whereIn('status', ['available', 'booked']); // Show both available and booked cats
 
         // Search
         if ($request->filled('search')) {
@@ -85,6 +85,21 @@ class CatController extends Controller
         }
 
         $cats = $query->paginate($request->get('per_page', 12));
+
+        // Add adoption status info for booked cats
+        $cats->getCollection()->transform(function ($cat) {
+            if ($cat->status === 'booked') {
+                // Check if there's an active paid adoption
+                $paidAdoption = $cat->adoptions()
+                    ->whereIn('status', ['payment', 'shipping'])
+                    ->first();
+
+                $cat->is_in_adoption_process = !is_null($paidAdoption);
+            } else {
+                $cat->is_in_adoption_process = false;
+            }
+            return $cat;
+        });
 
         return response()->json($cats);
     }
