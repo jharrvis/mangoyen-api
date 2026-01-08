@@ -19,7 +19,7 @@ class AdminController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $transactions = EscrowTransaction::with(['adoption.adopter', 'adoption.cat.shelter'])
+        $transactions = EscrowTransaction::with(['adoption.adopter', 'adoption.cat.shelter.user'])
             ->orderBy('created_at', 'desc')
             ->get();
 

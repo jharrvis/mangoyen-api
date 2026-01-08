@@ -349,6 +349,21 @@ class AdoptionController extends Controller
         // Update shelter stats
         $adoption->cat->shelter->increment('total_adopted');
 
+        // Log activity
+        ActivityLog::create([
+            'causer_id' => $user->id,
+            'subject_type' => 'App\Models\Adoption',
+            'subject_id' => $adoption->id,
+            'event' => 'adoption_completed',
+            'description' => "Adopsi {$adoption->cat->name} selesai! Adopter telah menerima anabul dan dana dilepas ke shelter.",
+            'properties' => [
+                'adoption_id' => $adoption->id,
+                'cat_id' => $adoption->cat_id,
+                'escrow_amount' => $adoption->escrowTransaction->amount,
+                'shelter_id' => $adoption->cat->shelter_id
+            ]
+        ]);
+
         // Email notification to both (queued)
         if ($adoption->adopter->email) {
             Mail::to($adoption->adopter->email)->queue(new AdoptionCompletedMail($adoption));
@@ -502,6 +517,20 @@ class AdoptionController extends Controller
             'tracking_number' => $validated['tracking_number'],
             'shipping_proof' => $shippingProof,
             'shipped_at' => now(),
+        ]);
+
+        // Log activity
+        ActivityLog::create([
+            'causer_id' => $user->id,
+            'subject_type' => 'App\Models\Adoption',
+            'subject_id' => $adoption->id,
+            'event' => 'shipping_confirmed',
+            'description' => "Shelter mengkonfirmasi pengiriman {$adoption->cat->name} dengan resi: {$validated['tracking_number']}",
+            'properties' => [
+                'adoption_id' => $adoption->id,
+                'tracking_number' => $validated['tracking_number'],
+                'has_proof' => !is_null($shippingProof)
+            ]
         ]);
 
         // Notify adopter

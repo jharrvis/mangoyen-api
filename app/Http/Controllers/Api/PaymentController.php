@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Adoption;
 use App\Models\EscrowTransaction;
+use App\Models\ActivityLog;
 use App\Services\MidtransService;
 use App\Models\Notification;
 use App\Mail\PaymentReceivedMail;
@@ -138,6 +139,22 @@ class PaymentController extends Controller
         $adoption->update([
             'status' => 'payment',
             'shipping_deadline' => now()->addDays(3) // 3 hari untuk kirim
+        ]);
+
+        // Log activity
+        ActivityLog::create([
+            'causer_id' => $adoption->adopter_id,
+            'subject_type' => 'App\Models\Adoption',
+            'subject_id' => $adoption->id,
+            'event' => 'payment_verified',
+            'description' => "Pembayaran adopsi {$adoption->cat->name} telah diverifikasi. Metode: {$method}",
+            'properties' => [
+                'adoption_id' => $adoption->id,
+                'transaction_id' => $transaction->id,
+                'amount' => $transaction->amount,
+                'payment_method' => $method,
+                'reference' => $reference
+            ]
         ]);
 
         // Send Notifications (Email & WA)
