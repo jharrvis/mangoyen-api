@@ -60,12 +60,28 @@ class PaymentController extends Controller
      */
     public function webhook(Request $request)
     {
-        $serverKey = config('services.midtrans.server_key');
         $payload = $request->all();
 
+        // Log incoming webhook for debugging
+        Log::info('Midtrans Webhook Received', ['payload' => $payload]);
+
+        // Handle Midtrans test webhook (when testing from dashboard)
+        if (empty($payload) || !isset($payload['order_id'])) {
+            Log::info('Midtrans Webhook Test - Empty or Test Payload');
+            return response()->json(['status' => 'ok', 'message' => 'Webhook endpoint is working']);
+        }
+
+        $serverKey = config('services.midtrans.server_key');
+
         // Verify Signature
-        $signatureKey = hash("sha512", $payload['order_id'] . $payload['status_code'] . $payload['gross_amount'] . $serverKey);
-        if ($signatureKey !== $payload['signature_key']) {
+        $expectedSignature = hash("sha512", $payload['order_id'] . $payload['status_code'] . $payload['gross_amount'] . $serverKey);
+
+        if ($expectedSignature !== ($payload['signature_key'] ?? '')) {
+            Log::warning('Midtrans Webhook Invalid Signature', [
+                'order_id' => $payload['order_id'] ?? 'unknown',
+                'expected' => substr($expectedSignature, 0, 20) . '...',
+                'received' => substr($payload['signature_key'] ?? '', 0, 20) . '...',
+            ]);
             return response()->json(['message' => 'Invalid Signature'], 403);
         }
 
@@ -77,6 +93,7 @@ class PaymentController extends Controller
         $transaction = EscrowTransaction::where('midtrans_order_id', $orderId)->first();
 
         if (!$transaction) {
+            Log::warning('Midtrans Webhook Transaction Not Found', ['order_id' => $orderId]);
             return response()->json(['message' => 'Transaction not found'], 404);
         }
 
