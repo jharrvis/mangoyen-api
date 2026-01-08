@@ -133,7 +133,13 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Admin Escrow Transactions (Rekber Pusat)
-    Route::get('/admin/escrow-transactions', [\App\Http\Controllers\Api\AdminController::class, 'escrowTransactions']);
+    Route::prefix('admin/escrow-transactions')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\AdminController::class, 'escrowTransactions']);
+        Route::get('/export', [\App\Http\Controllers\Api\AdminController::class, 'exportTransactions']);
+        Route::get('/{id}', [\App\Http\Controllers\Api\AdminController::class, 'showTransaction']);
+        Route::get('/{id}/midtrans-status', [\App\Http\Controllers\Api\AdminController::class, 'checkMidtransStatus']);
+        Route::post('/{id}/verify', [\App\Http\Controllers\Api\AdminController::class, 'verifyPayment']);
+    });
 
     // Wishlist
     Route::prefix('wishlist')->group(function () {
