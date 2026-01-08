@@ -90,11 +90,17 @@ class PaymentController extends Controller
         $type = $payload['payment_type'];
         $fraudId = $payload['fraud_status'] ?? null;
 
+        // Handle Midtrans test notifications (order_id starts with "payment_notif_test_")
+        if (str_starts_with($orderId, 'payment_notif_test_')) {
+            Log::info('Midtrans Webhook Test Notification Received', ['order_id' => $orderId]);
+            return response()->json(['status' => 'ok', 'message' => 'Test notification received']);
+        }
+
         $transaction = EscrowTransaction::where('midtrans_order_id', $orderId)->first();
 
         if (!$transaction) {
             Log::warning('Midtrans Webhook Transaction Not Found', ['order_id' => $orderId]);
-            return response()->json(['message' => 'Transaction not found'], 404);
+            return response()->json(['status' => 'ok', 'message' => 'Transaction not found but acknowledged'], 200);
         }
 
         $adoption = $transaction->adoption;
