@@ -61,7 +61,27 @@ class AdoptionController extends Controller
             'adopter_phone' => 'required|string|max:20',
         ]);
 
-        $cat = Cat::findOrFail($validated['cat_id']);
+        $cat = Cat::with('shelter')->findOrFail($validated['cat_id']);
+
+        // Validation 1: Shelter cannot adopt their own cat
+        if ($cat->shelter->user_id === $user->id) {
+            return response()->json([
+                'message' => 'Shelter tidak dapat mengadopsi kucing milik sendiri.',
+            ], 422);
+        }
+
+        // Validation 2: Check for duplicate adoption request
+        $existingAdoption = Adoption::where('adopter_id', $user->id)
+            ->where('cat_id', $cat->id)
+            ->whereIn('status', ['pending', 'approved', 'waiting_payment', 'payment', 'shipping'])
+            ->first();
+
+        if ($existingAdoption) {
+            return response()->json([
+                'message' => 'Anda sudah memiliki pengajuan adopsi aktif untuk kucing ini. Status: ' . $existingAdoption->status,
+                'existing_adoption' => $existingAdoption,
+            ], 422);
+        }
 
         if (!$cat->isAvailable()) {
             return response()->json([
