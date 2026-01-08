@@ -88,6 +88,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Payments
     Route::post('/payments/snap-token/{adoptionId}', [PaymentController::class, 'createSnapToken']);
 
+    // Profile
+    Route::prefix('profile')->group(function () {
+        Route::get('/bank-account', [\App\Http\Controllers\Api\ProfileController::class, 'getBankAccount']);
+        Route::put('/bank-account', [\App\Http\Controllers\Api\ProfileController::class, 'updateBankAccount']);
+    });
+
     // KYC (Shelter Verification)
     Route::prefix('kyc')->group(function () {
         Route::post('/submit', [\App\Http\Controllers\Api\KycController::class, 'submit']);
