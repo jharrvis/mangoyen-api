@@ -126,6 +126,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [\App\Http\Controllers\Api\AdminUserController::class, 'destroy']);
     });
 
+    // Admin Escrow Transactions (Rekber Pusat)
+    Route::get('/admin/escrow-transactions', [\App\Http\Controllers\Api\AdminController::class, 'escrowTransactions']);
+
     // Wishlist
     Route::prefix('wishlist')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\WishlistController::class, 'index']);
