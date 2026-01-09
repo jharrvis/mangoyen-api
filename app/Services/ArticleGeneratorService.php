@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Log;
 class ArticleGeneratorService
 {
     private $openRouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
-    // Use a more reliable free model
-    private $model = 'meta-llama/llama-3.2-3b-instruct:free';
+    // Use a capable free model for longer articles
+    private $model = 'google/gemma-2-9b-it:free';
 
     /**
      * System prompt for article generation
@@ -62,7 +62,15 @@ PROMPT;
             throw new \Exception('OpenRouter API key tidak dikonfigurasi');
         }
 
-        $userPrompt = "Buatkan artikel tentang: {$topic}\n\nPastikan artikel minimal 500 kata dan informatif.";
+        $userPrompt = "Buatkan artikel LENGKAP tentang: {$topic}
+
+KETENTUAN PENTING:
+- Artikel HARUS minimal 800 kata
+- Tulis minimal 8 paragraf dengan tag <p>
+- Setiap paragraf minimal 3 kalimat
+- Gunakan subheading <h2> dan <h3> untuk struktur
+- Berikan tips praktis yang bisa langsung diterapkan
+- JANGAN tulis artikel pendek, harus lengkap dan detail";
 
         try {
             $response = Http::timeout(60)
@@ -79,7 +87,7 @@ PROMPT;
                         ['role' => 'user', 'content' => $userPrompt],
                     ],
                     'temperature' => 0.7,
-                    'max_tokens' => 2000,
+                    'max_tokens' => 4000,
                 ]);
 
             if (!$response->successful()) {
