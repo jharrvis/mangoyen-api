@@ -40,6 +40,9 @@ Route::get('/articles', [ArticleController::class, 'index']);
 Route::get('/articles/categories', [ArticleController::class, 'categories']);
 Route::get('/articles/{slug}', [ArticleController::class, 'show']);
 
+// Tags (public read)
+Route::get('/tags', [ArticleController::class, 'tags']);
+
 // Fraud reports (can be submitted without login)
 Route::post('/fraud-reports', [FraudReportController::class, 'store']);
 
@@ -139,6 +142,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [\App\Http\Controllers\Api\AdminController::class, 'showTransaction']);
         Route::get('/{id}/midtrans-status', [\App\Http\Controllers\Api\AdminController::class, 'checkMidtransStatus']);
         Route::post('/{id}/verify', [\App\Http\Controllers\Api\AdminController::class, 'verifyPayment']);
+    });
+
+    // Admin Articles Management
+    Route::prefix('admin/articles')->group(function () {
+        Route::get('/', [ArticleController::class, 'adminIndex']);
+        Route::post('/', [ArticleController::class, 'store']);
+        Route::put('/{id}', [ArticleController::class, 'update']);
+        Route::delete('/{id}', [ArticleController::class, 'destroy']);
+        Route::post('/{id}/publish', [ArticleController::class, 'publish']);
+        Route::post('/upload-image', [ArticleController::class, 'uploadImage']);
+        Route::post('/generate-ai', [ArticleController::class, 'generateWithAI']);
     });
 
     // Shelter Dashboard
