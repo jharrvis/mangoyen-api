@@ -130,40 +130,68 @@ PROMPT;
      */
     private function extractJsonFromResponse(string $content): ?array
     {
-        // Clean whitespace
+        // Log the raw content for debugging
+        Log::debug('ArticleGenerator parsing content', ['length' => strlen($content)]);
+
+        // Clean whitespace at start/end
         $content = trim($content);
 
-        // Try 1: Direct JSON parse
+        // Try 1: Direct JSON parse (most common case)
         $data = json_decode($content, true);
         if (json_last_error() === JSON_ERROR_NONE && $this->isValidArticleData($data)) {
+            Log::debug('ArticleGenerator: Direct parse successful');
             return $data;
         }
 
-        // Try 2: Extract from markdown code block
-        if (preg_match('/```(?:json)?\s*([\s\S]*?)```/i', $content, $matches)) {
-            $data = json_decode(trim($matches[1]), true);
-            if (json_last_error() === JSON_ERROR_NONE && $this->isValidArticleData($data)) {
-                return $data;
-            }
-        }
-
-        // Try 3: Find JSON object pattern in text
-        if (preg_match('/\{[\s\S]*"title"[\s\S]*"content"[\s\S]*\}/i', $content, $matches)) {
-            $data = json_decode($matches[0], true);
-            if (json_last_error() === JSON_ERROR_NONE && $this->isValidArticleData($data)) {
-                return $data;
-            }
-        }
-
-        // Try 4: Remove common prefixes/suffixes and try again
-        $cleaned = preg_replace('/^[^{]*/', '', $content);
-        $cleaned = preg_replace('/[^}]*$/', '', $cleaned);
-        $data = json_decode($cleaned, true);
+        // Try 2: Fix common JSON issues - newlines inside strings
+        // Replace actual newlines with \n escape sequences inside the JSON
+        $fixedContent = $this->fixJsonNewlines($content);
+        $data = json_decode($fixedContent, true);
         if (json_last_error() === JSON_ERROR_NONE && $this->isValidArticleData($data)) {
+            Log::debug('ArticleGenerator: Fixed newlines parse successful');
             return $data;
         }
+
+        // Try 3: Extract from markdown code block
+        if (preg_match('/```(?:json)?\s*([\s\S]*?)```/i', $content, $matches)) {
+            $extracted = $this->fixJsonNewlines(trim($matches[1]));
+            $data = json_decode($extracted, true);
+            if (json_last_error() === JSON_ERROR_NONE && $this->isValidArticleData($data)) {
+                Log::debug('ArticleGenerator: Markdown block parse successful');
+                return $data;
+            }
+        }
+
+        // Try 4: Find JSON object pattern { ... }
+        if (preg_match('/\{[\s\S]*\}/s', $content, $matches)) {
+            $extracted = $this->fixJsonNewlines($matches[0]);
+            $data = json_decode($extracted, true);
+            if (json_last_error() === JSON_ERROR_NONE && $this->isValidArticleData($data)) {
+                Log::debug('ArticleGenerator: Pattern extract successful');
+                return $data;
+            }
+        }
+
+        Log::error('ArticleGenerator: All parsing methods failed', [
+            'json_error' => json_last_error_msg()
+        ]);
 
         return null;
+    }
+
+    /**
+     * Fix newlines inside JSON string values
+     */
+    private function fixJsonNewlines(string $json): string
+    {
+        // Replace literal newlines with escaped \n within string values
+        // This is a simplified approach - replace all newlines with space
+        $json = str_replace(["\r\n", "\r", "\n"], ' ', $json);
+
+        // Clean up multiple spaces
+        $json = preg_replace('/\s+/', ' ', $json);
+
+        return $json;
     }
 
     /**
