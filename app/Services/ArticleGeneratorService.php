@@ -92,17 +92,14 @@ PROMPT;
 
             $content = $response->json()['choices'][0]['message']['content'] ?? '';
 
-            // Clean up response - remove markdown code blocks if present
-            $content = preg_replace('/```json\s*/i', '', $content);
-            $content = preg_replace('/```\s*$/i', '', $content);
-            $content = trim($content);
+            Log::info('ArticleGenerator raw response', ['content' => $content]);
 
-            // Parse JSON
-            $data = json_decode($content, true);
+            // Extract JSON from response - try multiple patterns
+            $data = $this->extractJsonFromResponse($content);
 
-            if (json_last_error() !== JSON_ERROR_NONE) {
+            if (!$data) {
                 Log::error('ArticleGenerator JSON parse error', [
-                    'error' => json_last_error_msg(),
+                    'error' => 'Could not extract valid JSON',
                     'content' => $content
                 ]);
                 throw new \Exception('Format response AI tidak valid');
@@ -126,5 +123,54 @@ PROMPT;
             Log::error('ArticleGenerator failed', ['error' => $e->getMessage()]);
             throw $e;
         }
+    }
+
+    /**
+     * Extract JSON from AI response that may contain extra text or markdown
+     */
+    private function extractJsonFromResponse(string $content): ?array
+    {
+        // Clean whitespace
+        $content = trim($content);
+
+        // Try 1: Direct JSON parse
+        $data = json_decode($content, true);
+        if (json_last_error() === JSON_ERROR_NONE && $this->isValidArticleData($data)) {
+            return $data;
+        }
+
+        // Try 2: Extract from markdown code block
+        if (preg_match('/```(?:json)?\s*([\s\S]*?)```/i', $content, $matches)) {
+            $data = json_decode(trim($matches[1]), true);
+            if (json_last_error() === JSON_ERROR_NONE && $this->isValidArticleData($data)) {
+                return $data;
+            }
+        }
+
+        // Try 3: Find JSON object pattern in text
+        if (preg_match('/\{[\s\S]*"title"[\s\S]*"content"[\s\S]*\}/i', $content, $matches)) {
+            $data = json_decode($matches[0], true);
+            if (json_last_error() === JSON_ERROR_NONE && $this->isValidArticleData($data)) {
+                return $data;
+            }
+        }
+
+        // Try 4: Remove common prefixes/suffixes and try again
+        $cleaned = preg_replace('/^[^{]*/', '', $content);
+        $cleaned = preg_replace('/[^}]*$/', '', $cleaned);
+        $data = json_decode($cleaned, true);
+        if (json_last_error() === JSON_ERROR_NONE && $this->isValidArticleData($data)) {
+            return $data;
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if data has required article fields
+     */
+    private function isValidArticleData(?array $data): bool
+    {
+        return $data && !empty($data['title']) && !empty($data['content']);
     }
 }
