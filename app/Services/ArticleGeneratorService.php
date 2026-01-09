@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Log;
 class ArticleGeneratorService
 {
     private $openRouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
-    // Use a capable free model for longer articles
-    private $model = 'google/gemma-2-9b-it:free';
+    // Use same model as MangoyenHelper chat - proven to work
+    private $model = 'deepseek/deepseek-chat';
 
     /**
      * System prompt for article generation
