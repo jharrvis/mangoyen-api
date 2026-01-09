@@ -60,4 +60,11 @@ class MidtransService
             return null;
         }
     }
+    /**
+     * Get transaction status from Midtrans
+     */
+    public function getTransactionStatus($orderId)
+    {
+        return \Midtrans\Transaction::status($orderId);
+    }
 }
