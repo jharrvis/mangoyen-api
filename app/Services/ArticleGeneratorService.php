@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Log;
 class ArticleGeneratorService
 {
     private $openRouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
-    private $model = 'deepseek/deepseek-r1t-chimera:free';
+    // Use a more reliable free model
+    private $model = 'meta-llama/llama-3.2-3b-instruct:free';
 
     /**
      * System prompt for article generation
