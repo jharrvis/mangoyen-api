@@ -43,6 +43,12 @@ Route::get('/articles/{slug}', [ArticleController::class, 'show']);
 // Tags (public read)
 Route::get('/tags', [ArticleController::class, 'tags']);
 
+// Comments (public)
+use App\Http\Controllers\Api\CommentController;
+Route::get('/captcha', [CommentController::class, 'getCaptcha']);
+Route::get('/articles/{articleId}/comments', [CommentController::class, 'index']);
+Route::post('/articles/{articleId}/comments', [CommentController::class, 'store']);
+
 // Fraud reports (can be submitted without login)
 Route::post('/fraud-reports', [FraudReportController::class, 'store']);
 
@@ -153,6 +159,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/publish', [ArticleController::class, 'publish']);
         Route::post('/upload-image', [ArticleController::class, 'uploadImage']);
         Route::post('/generate-ai', [ArticleController::class, 'generateWithAI']);
+    });
+
+    // Admin Comments Moderation
+    Route::prefix('admin/comments')->group(function () {
+        Route::get('/', [CommentController::class, 'adminIndex']);
+        Route::post('/{id}/approve', [CommentController::class, 'approve']);
+        Route::post('/{id}/reject', [CommentController::class, 'reject']);
+        Route::post('/{id}/spam', [CommentController::class, 'markSpam']);
+        Route::post('/bulk', [CommentController::class, 'bulkAction']);
+        Route::delete('/{id}', [CommentController::class, 'destroy']);
     });
 
     // Shelter Dashboard
