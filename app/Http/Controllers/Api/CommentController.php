@@ -36,7 +36,7 @@ class CommentController extends Controller
     public function store(Request $request, $articleId)
     {
         $article = Article::where('id', $articleId)
-            ->where('status', 'published')
+            ->where('is_published', true)
             ->firstOrFail();
 
         // Rate limiting check
