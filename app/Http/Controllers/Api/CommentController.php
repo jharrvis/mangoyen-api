@@ -60,7 +60,8 @@ class CommentController extends Controller
         ];
 
         // Guest fields required if not authenticated
-        if (!auth()->check()) {
+        // Use sanctum guard explicitly for public routes
+        if (!auth('sanctum')->check()) {
             $rules['guest_name'] = 'required|string|min:2|max:100';
             $rules['guest_email'] = 'required|email|max:150';
         }
@@ -86,7 +87,7 @@ class CommentController extends Controller
         ];
 
         // Set author based on authentication
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         if ($user) {
             // Check if user is a shelter
             if ($user->shelter) {
