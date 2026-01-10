@@ -23,7 +23,7 @@ class CommentController extends Controller
         $comments = Comment::where('article_id', $article->id)
             ->approved()
             ->rootLevel()
-            ->with(['user:id,name,avatar', 'shelter:id,name,logo', 'replies'])
+            ->with(['user:id,name,avatar', 'shelter:id,name,slug,logo', 'replies'])
             ->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 10));
 
