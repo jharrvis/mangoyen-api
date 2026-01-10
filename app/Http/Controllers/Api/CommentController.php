@@ -56,7 +56,7 @@ class CommentController extends Controller
             'parent_id' => 'nullable|exists:comments,id',
             'captcha_answer' => 'required|string',
             'captcha_token' => 'required|string',
-            'honeypot' => 'size:0', // Must be empty (bot trap)
+            'honeypot' => 'nullable|max:0', // Must be empty (bot trap)
         ];
 
         // Guest fields required if not authenticated
