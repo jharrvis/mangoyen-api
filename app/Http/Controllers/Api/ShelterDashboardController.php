@@ -73,13 +73,38 @@ class ShelterDashboardController extends Controller
 
         // Transform for display
         $data = $cats->map(function ($cat) {
+            // Get primary photo URL
+            $photoUrl = null;
+            if ($cat->primaryPhoto) {
+                $photoUrl = $cat->primaryPhoto->photo_url; // Use accessor
+            } elseif ($cat->photos->first()) {
+                $photoUrl = $cat->photos->first()->photo_url;
+            }
+
+            // Calculate age in months and format it
+            $ageMonths = $cat->calculated_age;
+            $ageDisplay = '-';
+            if ($ageMonths) {
+                $months = (int) round($ageMonths);
+                $years = floor($months / 12);
+                $rem = $months % 12;
+                if ($years > 0 && $rem > 0) {
+                    $ageDisplay = "{$years}thn {$rem}bln";
+                } elseif ($years > 0) {
+                    $ageDisplay = "{$years} tahun";
+                } else {
+                    $ageDisplay = "{$months} bulan";
+                }
+            }
+
             return [
                 'id' => $cat->id,
                 'name' => $cat->name,
                 'breed' => $cat->breed,
-                'age_display' => $cat->age_display,
+                'age_display' => $ageDisplay,
+                'calculated_age' => $ageMonths,
                 'view_count' => $cat->view_count,
-                'thumbnail' => $cat->primaryPhoto ? $cat->primaryPhoto->photo_path : ($cat->photos->first()->photo_path ?? null),
+                'photo_url' => $photoUrl,
                 'status' => $cat->status,
             ];
         });
